@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/events.json
+data/animals.json
+uploads/
+.env
+.DS_Store
