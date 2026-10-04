@@ -1,35 +1,70 @@
 # EcoVision
 
-EcoVision is a working full-stack prototype for endangered wildlife monitoring from camera-trap images. It supports image upload, contrast-preprocessing metadata, YOLOv8-style object event output, Siamese-style animal re-identification, threat scoring, and a review dashboard.
+EcoVision is a full-stack platform for endangered wildlife monitoring from camera-trap images. It features image upload, OpenCV CLAHE contrast preprocessing, model-backed YOLOv8 object detection with normalized bounding boxes, Siamese animal re-identification, threat classification, and an interactive review dashboard.
 
-## Run
+## Directory Structure
+
+```
+├── backend/                  # Node.js Express REST API & ML Services
+│   ├── config/              # Threshold configurations by species & camera
+│   ├── db/                  # MongoDB & JSON persistence stores
+│   ├── ml/                  # Machine learning pipeline & weights
+│   │   ├── weights/         # YOLOv8 model weights (yolov8n.pt)
+│   │   └── pipeline.py      # OpenCV CLAHE & YOLOv8 inference service
+│   ├── schemas/             # Event and animal schema definitions & versioning
+│   ├── services/            # Preprocess, detection, and re-identification services
+│   ├── utils/               # Geometry validation & bbox normalization
+│   └── index.js             # API server entry point
+├── frontend/                 # React + Vite web application
+│   ├── index.html           # Single-page HTML entry point
+│   └── src/
+│       ├── components/      # Modular UI components (Header, Sidebar, EventCard, etc.)
+│       ├── utils/           # Frontend formatters and helpers
+│       ├── styles.css       # Clean dashboard styling
+│       ├── App.jsx          # Root application component
+│       └── main.jsx         # React DOM mount point
+├── test/                     # Automated test suites (API, schemas, geometry, store, threat)
+├── data/                     # Seeded JSON dataset fallback (.gitkeep)
+├── uploads/                  # Uploaded camera-trap images (.gitkeep)
+├── ROADMAP.md                # 6-phase development roadmap and exit criteria
+└── package.json              # Project scripts and dependencies
+```
+
+## Getting Started
+
+### Install Dependencies
 
 ```bash
 npm install
+```
+
+### Start Development Servers
+
+Runs both the backend API (`http://127.0.0.1:4000`) and the frontend client (`http://127.0.0.1:5173`):
+
+```bash
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`.
+You can also run them independently:
+- **Backend API**: `npm run backend` (port 4000)
+- **Frontend Client**: `npm run frontend` (port 5173)
 
-## Architecture
+### Run Tests
 
-- `server/index.js`: Express API for upload, events, review status, and dashboard summary.
-- `server/services/preprocess.js`: CLAHE preprocessing interface. The demo adapter records CLAHE settings and image statistics; replace this module with OpenCV CLAHE for production.
-- `server/services/detection.js`: YOLOv8 adapter boundary. The demo implementation produces deterministic animal/human/vehicle detections from image features and filename hints.
-- `server/services/reid.js`: Siamese Neural Network adapter boundary. The demo implementation creates repeatable embeddings and matches against stored animal identities.
-- `server/db/store.js`: MongoDB-backed persistence when `MONGODB_URI` is configured, with JSON-file fallback for local demos.
-- `src/`: React dashboard.
+Run the test suite:
+
+```bash
+npm test
+```
 
 ## Production Model Integration
 
-Use the same service boundaries and replace the demo logic with:
-
-1. OpenCV CLAHE preprocessing, saving the processed image or passing tensors directly downstream.
-2. YOLOv8 inference from exported ONNX/TensorRT/PyTorch service returning `{ bbox, label, confidence }`.
-3. Siamese embedding service returning normalized vectors for animal crops.
-4. MongoDB collections for `events` and `animals`.
-
-Set `MONGODB_URI` and `MONGODB_DB=ecovision` to persist with MongoDB.
+The ML adapter boundaries in `backend/services/` connect directly to real models:
+1. **OpenCV CLAHE Preprocessing** (`backend/services/preprocess.js` -> `backend/ml/pipeline.py`): Performs contrast-limited adaptive histogram equalization.
+2. **YOLOv8 Detection Service** (`backend/services/detection.js` -> `backend/ml/pipeline.py`): Real inference returning normalized coordinates and confidence scores.
+3. **Re-Identification Service** (`backend/services/reid.js`): ReID embeddings matching against registered animal identities.
+4. **Data Persistence** (`backend/db/store.js`): MongoDB collections for `events` and `animals` (or JSON fallback). Set `MONGODB_URI` and `MONGODB_DB=ecovision` to persist with MongoDB.
 
 ## Development Roadmap & Phases
 
@@ -40,10 +75,3 @@ See [ROADMAP.md](file:///Users/aditi/Desktop/mini%20proj/ROADMAP.md) for the com
 - **Phase 3: Alerting and Operational Dashboard** (Planned ⏳)
 - **Phase 4: Data Quality and Model Evaluation** (Planned ⏳)
 - **Phase 5: Pilot Deployment** (Planned ⏳)
-
-## Testing
-
-Run the automated test suite:
-```bash
-npm test
-```

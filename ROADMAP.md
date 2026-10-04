@@ -24,13 +24,13 @@ This document outlines the multi-phase engineering and machine learning roadmap 
 
 #### Objectives & Implementation
 - **Schema Contracts & Versioning**: Defined formal event and animal schema models (`schemaVersion: 1.0.0`) enforcing data integrity, timestamps, confidence scores, and review lifecycles.
-  - Implementation: [event.js](file:///Users/aditi/Desktop/mini%20proj/server/schemas/event.js), [animal.js](file:///Users/aditi/Desktop/mini%20proj/server/schemas/animal.js)
+  - Implementation: [event.js](file:///Users/aditi/Desktop/mini%20proj/backend/schemas/event.js), [animal.js](file:///Users/aditi/Desktop/mini%20proj/backend/schemas/animal.js)
 - **Bounding-Box Normalization & Validation**: Sanitized and clamped bounding-box geometries (handling negative offsets, unit-ratio conversions, pixel coordinates, and boundary clamping) to eliminate invalid geometry bugs.
-  - Implementation: [geometry.js](file:///Users/aditi/Desktop/mini%20proj/server/utils/geometry.js)
+  - Implementation: [geometry.js](file:///Users/aditi/Desktop/mini%20proj/backend/utils/geometry.js)
 - **API & Upload Validation**: Added comprehensive request validation for image files (format/MIME, size limits), camera types, and ISO timestamps with error handling.
-  - Implementation: [server/index.js](file:///Users/aditi/Desktop/mini%20proj/server/index.js)
+  - Implementation: [backend/index.js](file:///Users/aditi/Desktop/mini%20proj/backend/index.js)
 - **Threat Classification Rules**: Structured logic for categorizing sightings into `high` (animal + human or vehicle present), `medium` (unauthorized human/vehicle without animals), and `low` (wildlife only).
-  - Implementation: [classifyThreat](file:///Users/aditi/Desktop/mini%20proj/server/index.js#L270-L279)
+  - Implementation: [classifyThreat](file:///Users/aditi/Desktop/mini%20proj/backend/index.js#L270-L279)
 - **Automated Test Suite**: Built 40 passing tests using Node.js native test runner covering API endpoints, store operations, threat classification, geometry normalization, and schema validation.
   - Test suites: [api.test.js](file:///Users/aditi/Desktop/mini%20proj/test/api.test.js), [geometry.test.js](file:///Users/aditi/Desktop/mini%20proj/test/geometry.test.js), [schemas.test.js](file:///Users/aditi/Desktop/mini%20proj/test/schemas.test.js), [store.test.js](file:///Users/aditi/Desktop/mini%20proj/test/store.test.js), [threat.test.js](file:///Users/aditi/Desktop/mini%20proj/test/threat.test.js)
 
@@ -44,13 +44,13 @@ This document outlines the multi-phase engineering and machine learning roadmap 
 
 #### Objectives & Implementation
 - **OpenCV CLAHE Preprocessing**: Integrated real Contrast Limited Adaptive Histogram Equalization (CLAHE) on LAB color channels (for color images) and grayscale (for nighttime infrared captures) via Python/OpenCV bridge.
-  - Implementation: [pipeline.py](file:///Users/aditi/Desktop/mini%20proj/server/ml/pipeline.py), [preprocess.js](file:///Users/aditi/Desktop/mini%20proj/server/services/preprocess.js)
+  - Implementation: [pipeline.py](file:///Users/aditi/Desktop/mini%20proj/backend/ml/pipeline.py), [preprocess.js](file:///Users/aditi/Desktop/mini%20proj/backend/services/preprocess.js)
 - **YOLOv8 Inference Service**: Integrated YOLOv8 model inference executing on enhanced images, mapping model detections into standard labels (`animal`, `human`, `vehicle`, specific species) with normalized bounding boxes.
-  - Model weights: [yolov8n.pt](file:///Users/aditi/Desktop/mini%20proj/yolov8n.pt)
-  - Bridge service: [detection.js](file:///Users/aditi/Desktop/mini%20proj/server/services/detection.js)
+  - Model weights: [yolov8n.pt](file:///Users/aditi/Desktop/mini%20proj/backend/ml/weights/yolov8n.pt)
+  - Bridge service: [detection.js](file:///Users/aditi/Desktop/mini%20proj/backend/services/detection.js)
 - **Traceable Inference Metadata**: Captured execution metadata per event including model version (`yolov8n-1.0.0`), applied confidence threshold, inference latency in ms, preprocessing contrast scores, and raw model output.
 - **Configurable Detection Thresholds**: Added dynamic multi-tier threshold resolution (Species > Camera Type > Global) with REST endpoints (`GET /api/config/thresholds` and `PATCH /api/config/thresholds`).
-  - Configuration: [thresholds.js](file:///Users/aditi/Desktop/mini%20proj/server/config/thresholds.js)
+  - Configuration: [thresholds.js](file:///Users/aditi/Desktop/mini%20proj/backend/config/thresholds.js)
   - Automated tests: [thresholds.test.js](file:///Users/aditi/Desktop/mini%20proj/test/thresholds.test.js)
 
 #### Exit Criteria

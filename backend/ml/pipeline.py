@@ -87,6 +87,18 @@ def run_clahe_preprocessing(image_path, output_path=None, clip_limit=2.0, tile_g
         "processingTimeMs": elapsed_ms
     }
 
+def resolve_model_path(model_path="yolov8n.pt"):
+    if os.path.exists(model_path):
+        return model_path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    weights_path = os.path.join(current_dir, "weights", os.path.basename(model_path))
+    if os.path.exists(weights_path):
+        return weights_path
+    workspace_path = os.path.join(current_dir, "..", "..", os.path.basename(model_path))
+    if os.path.exists(workspace_path):
+        return os.path.abspath(workspace_path)
+    return model_path
+
 def run_yolo_detection(image_path, model_path="yolov8n.pt", conf_threshold=0.25, threshold_overrides=None):
     """
     Runs YOLOv8 object detection on the image.
@@ -99,7 +111,8 @@ def run_yolo_detection(image_path, model_path="yolov8n.pt", conf_threshold=0.25,
     import ultralytics
 
     start_time = time.perf_counter()
-    model = YOLO(model_path)
+    resolved_model = resolve_model_path(model_path)
+    model = YOLO(resolved_model)
     img = cv2.imread(image_path)
     if img is None:
         raise ValueError(f"Could not load image at {image_path}")

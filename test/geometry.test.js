@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeBbox, isValidNormalizedBbox } from '../server/utils/geometry.js';
+import { normalizeBbox, isValidNormalizedBbox } from '../backend/utils/geometry.js';
 
 describe('Bounding Box Normalization and Geometry Validation', () => {
   test('normalizes standard percentage bounding box', () => {

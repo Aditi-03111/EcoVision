@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateEvent, formatEventDocument, EVENT_SCHEMA_VERSION } from '../server/schemas/event.js';
-import { validateAnimal, formatAnimalDocument, ANIMAL_SCHEMA_VERSION } from '../server/schemas/animal.js';
+import { validateEvent, formatEventDocument, EVENT_SCHEMA_VERSION } from '../backend/schemas/event.js';
+import { validateAnimal, formatAnimalDocument, ANIMAL_SCHEMA_VERSION } from '../backend/schemas/animal.js';
 
 describe('Event & Animal Schema Validation & Versioning', () => {
   test('validates and formats a complete event document with version 1.0.0', () => {

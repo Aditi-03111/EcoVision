@@ -2,6 +2,8 @@ node_modules/
 dist/
 data/events.json
 data/animals.json
-uploads/
+uploads/*
+!uploads/.gitkeep
+!data/.gitkeep
 .env
 .DS_Store

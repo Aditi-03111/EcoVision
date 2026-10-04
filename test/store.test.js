@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { createJsonStore, getSeededEvents, getSeededAnimals } from '../server/db/store.js';
-import { isValidNormalizedBbox } from '../server/utils/geometry.js';
-import { validateEvent } from '../server/schemas/event.js';
-import { validateAnimal } from '../server/schemas/animal.js';
+import { createJsonStore, getSeededEvents, getSeededAnimals } from '../backend/db/store.js';
+import { isValidNormalizedBbox } from '../backend/utils/geometry.js';
+import { validateEvent } from '../backend/schemas/event.js';
+import { validateAnimal } from '../backend/schemas/animal.js';
 
 describe('Data Stores and Seed Data Integrity', () => {
   let tmpDir;

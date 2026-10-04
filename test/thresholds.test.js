@@ -5,7 +5,7 @@ import {
   getAllThresholds,
   updateThresholds,
   resetThresholds
-} from '../server/config/thresholds.js';
+} from '../backend/config/thresholds.js';
 
 describe('Configurable Detection Thresholds by Species and Camera Type', () => {
   beforeEach(() => {

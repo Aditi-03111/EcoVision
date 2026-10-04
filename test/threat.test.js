@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyThreat } from '../server/index.js';
+import { classifyThreat } from '../backend/index.js';
 
 describe('Threat Classification Logic', () => {
   test('returns "high" threat when both animal and human are detected (poaching scenario)', () => {

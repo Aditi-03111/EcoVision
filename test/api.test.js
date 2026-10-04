@@ -1,6 +1,6 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { app, store } from '../server/index.js';
+import { app, store } from '../backend/index.js';
 
 describe('EcoVision API Integration Endpoints', () => {
   let server;

@@ -5,13 +5,15 @@
   "description": "AI-based wildlife monitoring prototype for camera-trap detection, animal re-identification, and poaching event review.",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm:server\" \"npm:client\"",
-    "server": "node server/index.js",
+    "dev": "concurrently \"npm:backend\" \"npm:frontend\"",
+    "backend": "node backend/index.js",
+    "frontend": "vite --host 127.0.0.1",
+    "server": "node backend/index.js",
     "client": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test test/**/*.test.js",
-    "start": "node server/index.js"
+    "start": "node backend/index.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",
