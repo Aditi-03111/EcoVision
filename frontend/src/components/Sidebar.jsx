@@ -1,9 +1,19 @@
 import React from 'react';
-import { PawPrint, Upload } from 'lucide-react';
+import { PawPrint, Upload, ArrowLeft } from 'lucide-react';
 
-export function Sidebar({ form, setForm, file, setFile, busy, onUpload }) {
+export function Sidebar({ form, setForm, file, setFile, busy, onUpload, onBackToLanding }) {
   return (
     <aside className="sidebar">
+      {onBackToLanding && (
+        <button
+          onClick={onBackToLanding}
+          className="flex items-center gap-2 text-xs font-medium text-emerald-300 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl w-fit"
+        >
+          <ArrowLeft size={14} />
+          Back to Safari Landing Page
+        </button>
+      )}
+
       <div className="brand">
         <div className="brand-mark"><PawPrint size={24} /></div>
         <div>

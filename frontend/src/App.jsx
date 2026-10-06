@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { LandingPage } from './components/LandingPage.jsx';
 import { Sidebar } from './components/Sidebar.jsx';
 import { Header } from './components/Header.jsx';
 import { SummaryStats } from './components/SummaryStats.jsx';
@@ -9,6 +10,7 @@ import './styles.css';
 const API = import.meta.env.VITE_API_URL || '';
 
 export function App() {
+  const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'app'
   const [events, setEvents] = useState([]);
   const [summary, setSummary] = useState({ total: 0, highThreat: 0, pending: 0, knownAnimals: 0 });
   const [form, setForm] = useState({ location: 'North Ridge Camera 04', timestamp: nowLocal() });
@@ -73,6 +75,12 @@ export function App() {
     }
   }
 
+  if (currentView === 'landing') {
+    return (
+      <LandingPage onOpenApp={() => setCurrentView('app')} />
+    );
+  }
+
   return (
     <main className="app-shell">
       <Sidebar
@@ -82,6 +90,7 @@ export function App() {
         setFile={setFile}
         busy={busy}
         onUpload={handleUpload}
+        onBackToLanding={() => setCurrentView('landing')}
       />
 
       <section className="workspace">
