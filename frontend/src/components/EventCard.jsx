@@ -1,16 +1,36 @@
 import React from 'react';
-import { Clock, MapPin, BadgeCheck, Camera, Check } from 'lucide-react';
+import { Clock, MapPin, BadgeCheck, Camera, Check, ShieldAlert, Sparkles } from 'lucide-react';
 import { formatDate, iconFor } from '../utils/formatters.jsx';
+
+const FALLBACK_IMAGES = {
+  tiger: 'https://images.unsplash.com/photo-1561731216-c3a4d99437d5?q=80&w=800&auto=format&fit=crop',
+  elephant: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?q=80&w=800&auto=format&fit=crop',
+  rhino: 'https://images.unsplash.com/photo-1575550959106-5a7defe28b56?q=80&w=800&auto=format&fit=crop',
+  vehicle: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=800&auto=format&fit=crop',
+  default: 'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?q=80&w=800&auto=format&fit=crop'
+};
 
 export function EventCard({ event, onStatus }) {
   const identity = event.animalIdentity;
+  const speciesKey = (identity?.species || event.detections?.[0]?.species || '').toLowerCase();
+  const fallbackUrl = FALLBACK_IMAGES[speciesKey] || (event.threatLevel === 'medium' ? FALLBACK_IMAGES.vehicle : FALLBACK_IMAGES.default);
 
   return (
     <article className={`event-card threat-${event.threatLevel}`}>
+      {/* Thumbnail with AI Bounding Box Overlays */}
       <div className="thumb-wrap">
-        <img src={event.imagePath} alt={event.originalName} />
+        <img
+          src={event.imagePath}
+          alt={event.originalName}
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = fallbackUrl;
+          }}
+        />
+        
+        {/* Real-time Bounding Box Overlays */}
         {event.detections.map((detection) => (
-          <span
+          <div
             key={detection.id}
             className={`bbox ${detection.label}`}
             style={{
@@ -19,45 +39,73 @@ export function EventCard({ event, onStatus }) {
               width: `${detection.bbox.width}%`,
               height: `${detection.bbox.height}%`
             }}
-            title={`${detection.label} ${Math.round(detection.confidence * 100)}%`}
-          />
+          >
+            <span className="bbox-label">
+              {detection.label === 'human' ? '👤 Human' : detection.label === 'vehicle' ? '🚗 Vehicle' : `🐾 ${detection.species || 'Wildlife'}`} {Math.round(detection.confidence * 100)}%
+            </span>
+          </div>
         ))}
+
+        <div className="thumb-gradient" />
+        <span className="thumb-mode-badge">
+          <Camera size={11} />
+          {event.preprocessing?.mode ? event.preprocessing.mode.replace('_', ' ') : 'Camera Trap'}
+        </span>
       </div>
 
+      {/* Main Metadata & Event Intelligence */}
       <div className="event-main">
         <div className="event-title">
           <div>
-            <h3>{identity ? `${identity.species} · ${identity.identity}` : 'Non-animal activity'}</h3>
-            <p>{event.originalName}</p>
+            <h3>
+              {identity ? `${identity.species} · ${identity.identity}` : (event.detections?.[0]?.label === 'human' ? 'Human Activity Detected' : event.detections?.[0]?.species || 'Wildlife Activity')}
+            </h3>
+            <p className="filename-sub">{event.originalName} · {event.inferenceMetadata?.modelVersion || 'YOLOv8'}</p>
           </div>
-          <span className={`pill ${event.threatLevel}`}>{event.threatLevel} threat</span>
+          <span className={`pill ${event.threatLevel}`}>
+            {event.threatLevel === 'high' && <ShieldAlert size={12} className="inline mr-1" />}
+            {event.threatLevel} threat
+          </span>
         </div>
 
         <div className="meta-grid">
-          <span><Clock size={16} />{formatDate(event.timestamp)}</span>
-          <span><MapPin size={16} />{event.location}</span>
-          <span><BadgeCheck size={16} />{(event.identityStatus || '').replace('_', ' ')}</span>
-          <span><Camera size={16} />{event.preprocessing?.mode || 'standard'}</span>
+          <span><Clock size={14} />{formatDate(event.timestamp)}</span>
+          <span><MapPin size={14} />{event.location}</span>
+          <span><BadgeCheck size={14} />{(event.identityStatus || '').replace('_', ' ')}</span>
+          <span><Sparkles size={14} />Score {event.preprocessing?.contrastScore ? (event.preprocessing.contrastScore * 100).toFixed(0) + '%' : 'CLAHE'}</span>
         </div>
 
         <div className="detections">
           {event.detections.map((detection) => (
-            <span key={detection.id}>
+            <span key={detection.id} className={`det-tag det-${detection.label}`}>
               {iconFor(detection.label)}
-              {detection.label} {Math.round(detection.confidence * 100)}%
+              <strong>{detection.species || detection.label}</strong> {Math.round(detection.confidence * 100)}%
               {detection.reid ? ` · ${detection.reid.status} ${Math.round(detection.reid.similarity * 100)}%` : ''}
             </span>
           ))}
         </div>
+
+        {event.notes && event.notes.length > 0 && (
+          <p className="event-note">"{event.notes[0]}"</p>
+        )}
       </div>
 
+      {/* Review Actions */}
       <div className="review">
-        <select value={event.reviewStatus} onChange={(e) => onStatus(event._id, e.target.value)}>
+        <select
+          value={event.reviewStatus}
+          onChange={(e) => onStatus(event._id, e.target.value)}
+          aria-label="Update review status"
+        >
           <option value="pending">Pending</option>
           <option value="reviewed">Reviewed</option>
           <option value="confirmed">Confirmed</option>
         </select>
-        <button onClick={() => onStatus(event._id, 'confirmed')} title="Confirm event">
+        <button
+          onClick={() => onStatus(event._id, 'confirmed')}
+          title="Confirm this observation"
+          className={event.reviewStatus === 'confirmed' ? 'confirmed-btn' : ''}
+        >
           <Check size={18} />
         </button>
       </div>
