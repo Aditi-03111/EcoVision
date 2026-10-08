@@ -204,11 +204,134 @@ def run_yolo_detection(image_path, model_path="yolov8n.pt", conf_threshold=0.25,
         "rawInference": raw_inference
     }
 
+def run_video_pipeline(video_path, model_path="yolov8n.pt", keyframe_output=None, conf_threshold=0.25, threshold_overrides=None, sample_fps=2.0):
+    """
+    Processes video by sampling frames, running YOLOv8 detection,
+    and saving the best representative keyframe with detected bounding boxes.
+    """
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Video file not found at {video_path}")
+
+    from ultralytics import YOLO
+    import ultralytics
+
+    start_time = time.perf_counter()
+    resolved_model = resolve_model_path(model_path)
+    model = YOLO(resolved_model)
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise ValueError(f"Could not open video file at {video_path}")
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    duration_s = round(total_frames / video_fps, 2) if video_fps > 0 else 0
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
+
+    frame_interval = max(1, int(video_fps / sample_fps))
+    current_frame = 0
+
+    best_frame = None
+    best_detections = []
+    best_score = -1.0
+    sighting_timestamps = []
+    all_sighted_species = set()
+    raw_inference = []
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if current_frame % frame_interval == 0:
+            frame_time_s = round(current_frame / video_fps, 2)
+            results = model(frame, conf=min(conf_threshold, 0.15), verbose=False)
+            frame_dets = []
+            frame_score = 0.0
+
+            for r in results:
+                for idx, box in enumerate(r.boxes):
+                    cls_id = int(box.cls[0].item())
+                    confidence = float(box.conf[0].item())
+                    raw_label = model.names[cls_id]
+                    canonical_label = map_label_to_domain(raw_label)
+                    species = map_species_name(raw_label)
+
+                    if canonical_label:
+                        req_thresh = get_species_threshold(canonical_label, species, conf_threshold, threshold_overrides)
+                        if confidence >= req_thresh:
+                            xyxy = box.xyxy[0].tolist()
+                            norm_x = round(max(0.0, min(100.0, (xyxy[0] / w) * 100)), 2)
+                            norm_y = round(max(0.0, min(100.0, (xyxy[1] / h) * 100)), 2)
+                            norm_w = round(max(0.1, min(100.0, ((xyxy[2] - xyxy[0]) / w) * 100)), 2)
+                            norm_h = round(max(0.1, min(100.0, ((xyxy[3] - xyxy[1]) / h) * 100)), 2)
+
+                            det_item = {
+                                "id": f"{canonical_label}-{idx + 1}",
+                                "label": canonical_label,
+                                "species": species,
+                                "rawLabel": raw_label,
+                                "confidence": round(confidence, 3),
+                                "bbox": {
+                                    "x": norm_x,
+                                    "y": norm_y,
+                                    "width": norm_w,
+                                    "height": norm_h
+                                },
+                                "videoTimestamp": frame_time_s,
+                                "model": f"YOLOv8n-{ultralytics.__version__}"
+                            }
+                            frame_dets.append(det_item)
+                            frame_score += confidence
+                            all_sighted_species.add(species)
+                            raw_inference.append({
+                                "rawLabel": raw_label,
+                                "confidence": round(confidence, 3),
+                                "videoTimestamp": frame_time_s
+                            })
+
+            if frame_dets:
+                sighting_timestamps.append(frame_time_s)
+                if frame_score > best_score:
+                    best_score = frame_score
+                    best_detections = frame_dets
+                    best_frame = frame.copy()
+            elif best_frame is None and current_frame == 0:
+                best_frame = frame.copy()
+
+        current_frame += 1
+
+    cap.release()
+
+    saved_keyframe = None
+    if best_frame is not None and keyframe_output:
+        cv2.imwrite(keyframe_output, best_frame)
+        saved_keyframe = keyframe_output
+
+    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+
+    return {
+        "mediaType": "video",
+        "duration": duration_s,
+        "videoFps": video_fps,
+        "totalFrames": total_frames,
+        "imageDims": {"width": w, "height": h},
+        "keyframePath": saved_keyframe,
+        "modelVersion": f"yolov8n-{ultralytics.__version__}",
+        "confidenceThreshold": conf_threshold,
+        "processingTimeMs": elapsed_ms,
+        "detections": best_detections,
+        "rawInference": raw_inference,
+        "sightedSpecies": list(all_sighted_species),
+        "sightingTimestamps": sighting_timestamps
+    }
+
 def main():
     parser = argparse.ArgumentParser(description="EcoVision ML Preprocessing & Detection Pipeline")
-    parser.add_argument("--action", choices=["preprocess", "detect", "pipeline"], required=True)
-    parser.add_argument("--image", required=True, help="Input image file path")
-    parser.add_argument("--enhanced-output", default=None, help="Output path for CLAHE enhanced image")
+    parser.add_argument("--action", choices=["preprocess", "detect", "pipeline", "video"], required=True)
+    parser.add_argument("--image", required=True, help="Input image or video file path")
+    parser.add_argument("--enhanced-output", default=None, help="Output path for CLAHE enhanced image or video keyframe")
     parser.add_argument("--model", default="yolov8n.pt", help="Path or name of YOLO model")
     parser.add_argument("--threshold", type=float, default=0.25, help="Confidence threshold")
     parser.add_argument("--clip-limit", type=float, default=2.0, help="CLAHE clip limit")
@@ -238,6 +361,16 @@ def main():
             res = run_yolo_detection(
                 args.image,
                 model_path=args.model,
+                conf_threshold=args.threshold,
+                threshold_overrides=threshold_overrides
+            )
+            print(json.dumps(res))
+
+        elif args.action == "video":
+            res = run_video_pipeline(
+                args.image,
+                model_path=args.model,
+                keyframe_output=args.enhanced_output,
                 conf_threshold=args.threshold,
                 threshold_overrides=threshold_overrides
             )

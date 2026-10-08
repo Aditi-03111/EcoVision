@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar.jsx';
 import { Header } from './components/Header.jsx';
 import { SummaryStats } from './components/SummaryStats.jsx';
 import { EventList } from './components/EventList.jsx';
+import { NotificationToast } from './components/NotificationToast.jsx';
 import { nowLocal } from './utils/formatters.jsx';
 import './styles.css';
 
@@ -17,6 +18,8 @@ export function App() {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [notification, setNotification] = useState(null);
+  const [highlightedEventId, setHighlightedEventId] = useState(null);
 
   async function refresh() {
     try {
@@ -52,9 +55,33 @@ export function App() {
 
       const response = await fetch(`${API}/api/upload`, { method: 'POST', body });
       if (!response.ok) throw new Error('Upload failed');
+      const createdEvent = await response.json();
       setFile(null);
       event.currentTarget.reset();
       await refresh();
+
+      // Trigger animal recognition alert notification
+      if (createdEvent) {
+        const identity = createdEvent.animalIdentity;
+        const primaryDet = createdEvent.detections?.[0];
+        const speciesName = identity?.species || primaryDet?.species || (primaryDet?.label === 'human' ? 'Human Activity' : primaryDet?.label === 'vehicle' ? 'Vehicle Intrusion' : 'Wildlife Activity');
+        const virtualId = identity?.identity || primaryDet?.reid?.identity || 'Unassigned / New Record';
+        const matchScore = identity?.similarity ? Math.round(identity.similarity * 100) : (primaryDet?.reid?.similarity ? Math.round(primaryDet.reid.similarity * 100) : 95);
+        const vidTimestamp = primaryDet?.videoTimestamp ?? createdEvent.detections?.find(d => d.videoTimestamp !== undefined)?.videoTimestamp;
+
+        setNotification({
+          id: createdEvent._id,
+          species: speciesName,
+          virtualId: virtualId,
+          matchScore: matchScore,
+          threat: createdEvent.threatLevel || 'low',
+          location: createdEvent.location,
+          timestamp: createdEvent.timestamp,
+          mediaType: createdEvent.mediaType || 'image',
+          videoTimestamp: vidTimestamp
+        });
+        setHighlightedEventId(createdEvent._id);
+      }
     } catch (err) {
       console.error('Upload error:', err);
     } finally {
@@ -83,6 +110,16 @@ export function App() {
 
   return (
     <main className="app-shell">
+      <NotificationToast
+        notification={notification}
+        onClose={() => setNotification(null)}
+        onJumpToEvent={(id) => {
+          setHighlightedEventId(id);
+          const el = document.getElementById(`event-${id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+      />
+
       <Sidebar
         form={form}
         setForm={setForm}
@@ -96,7 +133,11 @@ export function App() {
       <section className="workspace">
         <Header filter={filter} onFilterChange={setFilter} />
         <SummaryStats summary={summary} />
-        <EventList events={visibleEvents} onStatusUpdate={updateStatus} />
+        <EventList
+          events={visibleEvents}
+          onStatusUpdate={updateStatus}
+          highlightedId={highlightedEventId}
+        />
       </section>
     </main>
   );

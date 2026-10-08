@@ -87,6 +87,9 @@ export function formatEventDocument(event) {
     location: event.location?.trim() || 'Unspecified camera trap',
     timestamp: new Date(event.timestamp || now).toISOString(),
     cameraType: event.cameraType || 'standard',
+    mediaType: event.mediaType || (event.videoPath ? 'video' : 'image'),
+    videoPath: event.videoPath || null,
+    mediaDuration: event.mediaDuration || null,
     preprocessing: event.preprocessing || {
       method: 'CLAHE',
       mode: 'standard',

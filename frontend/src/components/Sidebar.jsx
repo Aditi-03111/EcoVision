@@ -1,7 +1,9 @@
 import React from 'react';
-import { PawPrint, Upload, ArrowLeft } from 'lucide-react';
+import { PawPrint, Upload, ArrowLeft, Video, Image, Film } from 'lucide-react';
 
 export function Sidebar({ form, setForm, file, setFile, busy, onUpload, onBackToLanding }) {
+  const isVideoFile = file && /\.(mp4|mov|avi|webm|mkv|m4v)$/i.test(file.name);
+
   return (
     <aside className="sidebar">
       {onBackToLanding && (
@@ -24,39 +26,54 @@ export function Sidebar({ form, setForm, file, setFile, busy, onUpload, onBackTo
 
       <form className="upload-panel" onSubmit={onUpload}>
         <label>
-          Camera-trap image
-          <span className="file-input">
-            <Upload size={18} />
-            {file ? file.name : 'Choose image'}
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
+          Camera-trap media (Photo or Video clip)
+          <span className={`file-input ${file ? 'has-file' : ''}`}>
+            {isVideoFile ? <Film size={18} className="text-blue-400" /> : <Upload size={18} className="text-emerald-400" />}
+            <span className="file-name-text">
+              {file ? file.name : 'Upload photo or video'}
+            </span>
+            <input
+              type="file"
+              accept="image/*,video/*,.mp4,.mov,.avi,.webm"
+              onChange={(e) => setFile(e.target.files[0] || null)}
+            />
           </span>
+          {file && (
+            <span className="file-info-badge">
+              {isVideoFile ? '🎬 Video Stream' : '📷 High-Res Image'} · {(file.size / (1024 * 1024)).toFixed(1)} MB
+            </span>
+          )}
         </label>
+
         <label>
-          Location
+          Camera location / sector
           <input
             value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
+            placeholder="e.g. East Gate Camera 02"
           />
         </label>
+
         <label>
-          Timestamp
+          Observation timestamp
           <input
             type="datetime-local"
             value={form.timestamp}
             onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
           />
         </label>
+
         <button className="primary" disabled={!file || busy}>
-          <Upload size={18} />
-          {busy ? 'Analyzing...' : 'Analyze image'}
+          {isVideoFile ? <Video size={18} /> : <Upload size={18} />}
+          {busy ? (isVideoFile ? 'Analyzing video frames...' : 'Running YOLO & ReID...') : (isVideoFile ? 'Analyze Video Clip' : 'Analyze Image')}
         </button>
       </form>
 
       <div className="pipeline">
-        <span>CLAHE</span>
-        <span>YOLOv8</span>
-        <span>Siamese ReID</span>
-        <span>Review queue</span>
+        <span>OpenCV CLAHE</span>
+        <span>YOLOv8 Multi-Object</span>
+        <span>Siamese ReID Virtual ID</span>
+        <span>Real-Time Alert Radar</span>
       </div>
     </aside>
   );

@@ -23,19 +23,25 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/bmp',
-  'image/tiff'
+  'image/tiff',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/avi',
+  'video/mpeg'
 ]);
 
-const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB for video & photo captures
 
 const upload = multer({
   dest: uploadsDir,
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.has(file.mimetype) || file.mimetype.startsWith('image/')) {
+    if (ALLOWED_MIME_TYPES.has(file.mimetype) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {
-      const err = new Error('Invalid file format. Allowed formats: JPEG, PNG, WebP, BMP, TIFF.');
+      const err = new Error('Invalid file format. Allowed formats: JPEG, PNG, WebP, BMP, TIFF, MP4, WebM, MOV, AVI.');
       err.code = 'INVALID_FILE_TYPE';
       cb(err);
     }
@@ -189,9 +195,17 @@ app.post('/api/upload', (req, res, next) => {
 
     const threatLevel = classifyThreat(reid.detections);
 
+    const isVideo = detectionResult.mediaType === 'video';
+    const keyframeUrl = detectionResult.keyframePath
+      ? `/uploads/${path.basename(detectionResult.keyframePath)}`
+      : input.publicPath;
+
     // 4. Persist structured event with versioned schema & metadata
     const event = await store.createEvent({
-      imagePath: input.publicPath,
+      imagePath: keyframeUrl,
+      videoPath: isVideo ? input.publicPath : null,
+      mediaType: isVideo ? 'video' : 'image',
+      mediaDuration: detectionResult.duration || null,
       originalName,
       location,
       timestamp,

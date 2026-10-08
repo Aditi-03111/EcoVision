@@ -29,17 +29,29 @@ export async function detectObjects({
   const allThresholds = getAllThresholds();
   const overridesJson = JSON.stringify(allThresholds.species);
 
+  const isVideo = /\.(mp4|mov|avi|webm|mkv|m4v)$/i.test(originalName || imagePath);
+  const action = isVideo ? 'video' : 'detect';
+  const keyframePath = isVideo
+    ? path.join(path.dirname(imagePath), `keyframe_${path.basename(imagePath, path.extname(imagePath))}.jpg`)
+    : null;
+
   try {
+    const args = [
+      pythonScriptPath,
+      '--action', action,
+      '--image', imagePath,
+      '--threshold', String(activeThreshold),
+      '--overrides', overridesJson
+    ];
+
+    if (keyframePath) {
+      args.push('--enhanced-output', keyframePath);
+    }
+
     const { stdout } = await execFileAsync(
       'python3',
-      [
-        pythonScriptPath,
-        '--action', 'detect',
-        '--image', imagePath,
-        '--threshold', String(activeThreshold),
-        '--overrides', overridesJson
-      ],
-      { timeout: 30000 }
+      args,
+      { timeout: 60000 }
     );
 
     const result = JSON.parse(stdout.trim());
@@ -56,6 +68,9 @@ export async function detectObjects({
     if (detections.length === 0 && isDemoFilename(originalName)) {
       const demoDets = generateDeterministicDetections(originalName, preprocessing?.imageHash || '0000', activeThreshold);
       return {
+        mediaType: isVideo ? 'video' : 'image',
+        keyframePath: result.keyframePath || keyframePath,
+        duration: result.duration || null,
         detections: demoDets,
         rawInference: result.rawInference || [],
         modelVersion: `${result.modelVersion}-demo-augmented`,
@@ -66,6 +81,9 @@ export async function detectObjects({
     }
 
     return {
+      mediaType: isVideo ? 'video' : 'image',
+      keyframePath: result.keyframePath || keyframePath,
+      duration: result.duration || null,
       detections,
       rawInference: result.rawInference || [],
       modelVersion: result.modelVersion || 'yolov8n',
