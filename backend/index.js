@@ -48,12 +48,15 @@ const upload = multer({
   }
 });
 
+const sampleVideosDir = path.join(rootDir, 'sample_videos');
+
 export const app = express();
 export const store = await createStore();
 
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
+app.use('/sample_videos', express.static(sampleVideosDir));
 
 app.get('/api/health', (_req, res) => {
   res.json({

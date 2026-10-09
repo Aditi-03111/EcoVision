@@ -8,7 +8,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': 'http://127.0.0.1:4000',
-      '/uploads': 'http://127.0.0.1:4000'
+      '/uploads': 'http://127.0.0.1:4000',
+      '/sample_videos': 'http://127.0.0.1:4000'
     }
   },
   build: {
