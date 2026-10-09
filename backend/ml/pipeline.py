@@ -251,16 +251,34 @@ def run_video_pipeline(video_path, model_path="yolov8n.pt", keyframe_output=None
             frame_score = 0.0
 
             for r in results:
+                if r.boxes is None or len(r.boxes) == 0:
+                    continue
                 for idx, box in enumerate(r.boxes):
                     cls_id = int(box.cls[0].item())
                     confidence = float(box.conf[0].item())
-                    raw_label = model.names[cls_id]
-                    canonical_label = map_label_to_domain(raw_label)
-                    species = map_species_name(raw_label)
+                    raw_label = model.names.get(cls_id, f"class_{cls_id}").lower()
 
-                    if canonical_label:
-                        req_thresh = get_species_threshold(canonical_label, species, conf_threshold, threshold_overrides)
-                        if confidence >= req_thresh:
+                    if raw_label in HUMAN_CLASSES:
+                        canonical_label = 'human'
+                        species = 'Homo sapiens'
+                    elif raw_label in VEHICLE_CLASSES:
+                        canonical_label = 'vehicle'
+                        species = raw_label.capitalize()
+                    elif raw_label in ANIMAL_CLASSES:
+                        canonical_label = 'animal'
+                        species = raw_label.capitalize()
+                    else:
+                        canonical_label = 'other'
+                        species = raw_label.capitalize()
+
+                    active_thresh = conf_threshold
+                    if threshold_overrides:
+                        if canonical_label in threshold_overrides:
+                            active_thresh = threshold_overrides[canonical_label]
+                        elif raw_label in threshold_overrides:
+                            active_thresh = threshold_overrides[raw_label]
+
+                    if confidence >= active_thresh and canonical_label in ('human', 'vehicle', 'animal'):
                             xyxy = box.xyxy[0].tolist()
                             norm_x = round(max(0.0, min(100.0, (xyxy[0] / w) * 100)), 2)
                             norm_y = round(max(0.0, min(100.0, (xyxy[1] / h) * 100)), 2)
